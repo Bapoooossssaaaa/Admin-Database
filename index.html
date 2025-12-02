@@ -1,886 +1,827 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Terminal, 
-  Plus, 
-  LogOut, 
-  Eye, 
-  Paperclip,
-  Clock,
-  AlertTriangle,
-  User,
-  Link as LinkIcon,
-  Trash2,
-  ExternalLink,
-  Calendar,
-  Filter,
-  Briefcase,
-  Megaphone,
-  X,
-  AlertOctagon,
-  Loader
-} from 'lucide-react';
-
-import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAVPXfyKjjZ3NBJC5edTD74-hiUlMRdJ2Q",
-  authDomain: "adminlog-8885d.firebaseapp.com",
-  projectId: "adminlog-8885d",
-  storageBucket: "adminlog-8885d.firebasestorage.app",
-  messagingSenderId: "126818456830",
-  appId: "1:126818456830:web:edaab77a7186af254741af",
-  measurementId: "G-J9JGCRWCZJ"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const ASSETS = {
-  bgMain: "https://github.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/blob/main/Untitled%20design%20(5).gif?raw=true",
-  bgAD: "https://github.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/blob/main/Untitled%20design%20(25).png?raw=true",
-  logoScp: "https://github.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/blob/main/Logo_of_the_SCP_Foundation.png?raw=true",
-  logoAdmin: "https://github.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/blob/main/ADFixedlogo.png?raw=true"
-};
-
-const POSITIONS = [
-  "Administrative Department Member",
-  "Zone Manager (LCZ)",
-  "Zone Manager (HCZ)",
-  "Zone Manager (EZ)",
-  "Site Director",
-  "O5 Council Overseer",
-  "Ethics Committee Liaison",
-  "Security Chief",
-  "Research Head"
-];
-
-const BiosScreen = ({ onComplete }) => {
-  const [lines, setLines] = useState([]);
-  const [loading, setLoading] = useState(0);
-  
-  const bootText = [
-    "BIOS DATE 09/20/199X 14:22:51 VER 1.02",
-    "CPU: NEC V60, SPEED: 16 MHz",
-    "640K RAM SYSTEM 384K EXTENDED",
-    "INITIALIZING SCiPnet v4...",
-    "Loading KERNEL................. [OK]",
-    "Mounting /secure/data/site45... [OK]",
-    "Loading SECURITY protocols..... [OK]",
-    "Connecting to FOUNDATION INTRA..[OK]",
-    "Accessing TERMINAL_45_ADMIN...",
-    "DECRYPTING INTERFACE..."
-  ];
-
-  useEffect(() => {
-    let lineIndex = 0;
-    const interval = setInterval(() => {
-      if (lineIndex < bootText.length) {
-        setLines(prev => [...prev, bootText[lineIndex]]);
-        lineIndex++;
-      } else {
-        clearInterval(interval);
-        const loadInterval = setInterval(() => {
-          setLoading(prev => {
-            if (prev >= 100) {
-              clearInterval(loadInterval);
-              setTimeout(onComplete, 500);
-              return 100;
-            }
-            return prev + 5;
-          });
-        }, 20);
-      }
-    }, 80); 
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="h-screen w-full bg-black text-white font-mono p-10 overflow-hidden flex flex-col justify-end pb-20">
-      <div className="flex-1">
-        {lines.map((line, i) => (
-          <div key={i} className="mb-1 text-sm opacity-90">{line}</div>
-        ))}
-        <div className="animate-pulse">_</div>
-      </div>
-      {lines.length === bootText.length && (
-        <div className="w-full max-w-xl border-2 border-white p-1 mt-4">
-          <div className="h-4 bg-white transition-all duration-75" style={{ width: `${loading}%` }} />
-        </div>
-      )}
-    </div>
-  );
-};
-
-const LoginScreen = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site-45 Administrative Terminal</title>
     
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      setError("AUTHENTICATION FAILED: " + err.message);
-      setLoading(false);
-    }
-  };
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Babel for JSX compilation in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  return (
-    <div className="h-screen w-full flex items-center justify-center font-mono relative overflow-hidden text-white bg-black">
-      <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${ASSETS.bgMain}")` }} />
-      <div className="absolute inset-0 z-10 bg-black/40 pointer-events-none" />
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-20 bg-[length:100%_2px,3px_100%]"></div>
-      
-      <div className="z-30 w-full max-w-sm bg-black border border-white/40 p-8 shadow-2xl backdrop-blur-sm">
-        <div className="flex justify-center mb-6">
-          <img src={ASSETS.logoAdmin} alt="Admin" className="h-20 w-20 filter brightness-0 invert" />
-        </div>
+    <!-- 3. Styles -->
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: black;
+            color: white;
+            overflow: hidden; /* Prevent body scroll, let app handle it */
+        }
+        /* Custom scrollbar for terminal feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444; 
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666; 
+        }
+        .blink {
+            animation: blinker 1s linear infinite;
+        }
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- 4. The Application Logic -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
+        import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
         
-        <h1 className="text-lg text-center text-white mb-2 font-bold uppercase tracking-[0.2em]">Site-45 Admin</h1>
-        <p className="text-center text-gray-500 text-[10px] mb-6 tracking-widest border-b border-gray-800 pb-4">SECURE ACCESS TERMINAL</p>
+        // Import Lucide Icons from ESM CDN
+        import { 
+            Terminal, Plus, LogOut, Eye, Paperclip, Clock, AlertTriangle, 
+            User, Link as LinkIcon, Trash2, ExternalLink, Calendar, 
+            Filter, Briefcase, Megaphone, X, AlertOctagon, Loader, Github 
+        } from 'https://esm.sh/lucide-react@0.378.0';
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wider">Identity / Email</label>
-            <input 
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 text-white p-2 font-mono text-xs focus:outline-none focus:border-white transition-colors"
-              placeholder="personnel@foundation.scp"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wider">Passcode</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 text-white p-2 font-mono text-xs focus:outline-none focus:border-white transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-          {error && <p className="text-red-500 text-[10px] bg-red-900/20 p-2 border border-red-900 text-center">{error}</p>}
-          
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-white text-black font-bold py-2 hover:bg-gray-200 transition-colors uppercase text-xs tracking-wider mt-2 disabled:opacity-50"
-          >
-            {loading ? 'Authenticating...' : 'Authenticate'}
-          </button>
-        </form>
+        // Import Firebase from Google CDN (Modular SDK)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GithubAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        <div className="mt-6 pt-4 border-t border-gray-800 text-center">
-          <button onClick={() => onLogin('guest')} className="text-gray-500 text-[10px] hover:text-white uppercase transition-colors flex items-center justify-center w-full">
-            <Eye size={12} className="mr-1" /> Guest / Read-Only Access
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVPXfyKjjZ3NBJC5edTD74-hiUlMRdJ2Q",
+            authDomain: "adminlog-8885d.firebaseapp.com",
+            projectId: "adminlog-8885d",
+            storageBucket: "adminlog-8885d.firebasestorage.app",
+            messagingSenderId: "126818456830",
+            appId: "1:126818456830:web:edaab77a7186af254741af",
+            measurementId: "G-J9JGCRWCZJ"
+        };
 
-export default function App() {
-  const [booted, setBooted] = useState(false);
-  const [authLevel, setAuthLevel] = useState(null); 
-  const [logs, setLogs] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
-  const [selectedLog, setSelectedLog] = useState(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState('logs'); 
-  const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false);
-  
-  const [deleteConfirmation, setDeleteConfirmation] = useState({
-    isOpen: false,
-    id: null,
-    type: null,
-    isDeleting: false
-  });
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-  const [newAnnouncement, setNewAnnouncement] = useState({
-    title: '',
-    content: '',
-    author: 'Admin'
-  });
+        // --- ASSETS (Direct Links) ---
+        const ASSETS = {
+            bgMain: "https://raw.githubusercontent.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/main/Untitled%20design%20(5).gif",
+            bgAD: "https://raw.githubusercontent.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/main/Untitled%20design%20(25).png",
+            logoScp: "https://raw.githubusercontent.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/main/Logo_of_the_SCP_Foundation.png",
+            logoAdmin: "https://raw.githubusercontent.com/Bapoooossssaaaa/Kael-Nicholas-Charles-OC/main/ADFixedlogo.png"
+        };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setAuthLevel('admin');
-      } else {
-        if (authLevel !== 'guest') setAuthLevel(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []); 
+        const POSITIONS = [
+            "Administrative Department Member",
+            "Zone Manager (LCZ)",
+            "Zone Manager (HCZ)",
+            "Zone Manager (EZ)",
+            "Site Director",
+            "O5 Council Overseer",
+            "Ethics Committee Liaison",
+            "Security Chief",
+            "Research Head"
+        ];
 
-  useEffect(() => {
-    const qLogs = query(collection(db, "logs"), orderBy("timestamp", "desc"));
-    const unsubLogs = onSnapshot(qLogs, (snapshot) => {
-      const loaded = [];
-      snapshot.forEach((doc) => {
-        // IMPORTANT: We store 'firebaseId' separately from the document's 'id' field
-        loaded.push({ 
-            firebaseId: doc.id, // This is the secret real ID used for deletion
-            ...doc.data()       // This contains the custom display ID (AD_LOG-...)
-        });
-      });
-      setLogs(loaded);
-    });
+        // --- COMPONENTS ---
 
-    const qAnnouncements = query(collection(db, "announcements"), orderBy("timestamp", "desc"));
-    const unsubAnnounce = onSnapshot(qAnnouncements, (snapshot) => {
-      const loaded = [];
-      snapshot.forEach((doc) => {
-        loaded.push({ 
-            firebaseId: doc.id, // Secret real ID
-            ...doc.data() 
-        });
-      });
-      setAnnouncements(loaded);
-    });
-    
-    return () => { unsubLogs(); unsubAnnounce(); };
-  }, []);
+        const BiosScreen = ({ onComplete }) => {
+            const [lines, setLines] = useState([]);
+            const [loading, setLoading] = useState(0);
+            
+            const bootText = [
+                "BIOS DATE 09/20/199X 14:22:51 VER 1.02",
+                "CPU: NEC V60, SPEED: 16 MHz",
+                "640K RAM SYSTEM 384K EXTENDED",
+                "INITIALIZING SCiPnet v4...",
+                "Loading KERNEL................. [OK]",
+                "Mounting /secure/data/site45... [OK]",
+                "Loading SECURITY protocols..... [OK]",
+                "Connecting to FOUNDATION INTRA..[OK]",
+                "Accessing TERMINAL_45_ADMIN...",
+                "DECRYPTING INTERFACE..."
+            ];
 
-  const handleSignOut = () => {
-    signOut(auth).then(() => {
-      setAuthLevel(null);
-    }).catch((error) => console.error(error));
-  };
+            useEffect(() => {
+                let lineIndex = 0;
+                const interval = setInterval(() => {
+                    if (lineIndex < bootText.length) {
+                        setLines(prev => [...prev, bootText[lineIndex]]);
+                        lineIndex++;
+                    } else {
+                        clearInterval(interval);
+                        const loadInterval = setInterval(() => {
+                            setLoading(prev => {
+                                if (prev >= 100) {
+                                    clearInterval(loadInterval);
+                                    setTimeout(onComplete, 500);
+                                    return 100;
+                                }
+                                return prev + 5;
+                            });
+                        }, 20);
+                    }
+                }, 80); 
+                return () => clearInterval(interval);
+            }, []);
 
-  const [filterMonth, setFilterMonth] = useState('all');
-  const [filterQuota, setFilterQuota] = useState('all');
-
-  const [shiftActive, setShiftActive] = useState(false);
-  const [shiftTime, setShiftTime] = useState(0); 
-  const [shiftStartTimestamp, setShiftStartTimestamp] = useState(null);
-
-  useEffect(() => {
-    let interval;
-    if (shiftActive) {
-      interval = setInterval(() => {
-        setShiftTime(prev => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [shiftActive]);
-
-  const toggleShift = () => {
-    if (!shiftActive) {
-      setShiftStartTimestamp(new Date());
-    }
-    setShiftActive(!shiftActive);
-  };
-
-  const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const [newLogData, setNewLogData] = useState({
-    author: 'Admin',
-    position: POSITIONS[0],
-    clearance: 'Level 3',
-    activity: '',
-    reports: '',
-    requests: '',
-    actions: '',
-    links: [] 
-  });
-  
-  const [tempLinkUrl, setTempLinkUrl] = useState('');
-  const [tempLinkLabel, setTempLinkLabel] = useState('');
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      const logDate = new Date(log.timestamp);
-      const matchesMonth = filterMonth === 'all' || logDate.getMonth() === parseInt(filterMonth);
-      
-      const quotaMet = log.durationSeconds >= 3600;
-      let matchesQuota = true;
-      if (filterQuota === 'met') matchesQuota = quotaMet;
-      if (filterQuota === 'unmet') matchesQuota = !quotaMet;
-
-      return matchesMonth && matchesQuota;
-    });
-  }, [logs, filterMonth, filterQuota]);
-
-  const handleAddLink = (e) => {
-    e.preventDefault();
-    if (tempLinkUrl.trim()) {
-      const label = tempLinkLabel.trim() || tempLinkUrl.trim();
-      setNewLogData({ ...newLogData, links: [...newLogData.links, { label, url: tempLinkUrl.trim() }] });
-      setTempLinkUrl('');
-      setTempLinkLabel('');
-    }
-  };
-
-  const handleRemoveLink = (index) => {
-    const updatedLinks = newLogData.links.filter((_, i) => i !== index);
-    setNewLogData({...newLogData, links: updatedLinks});
-  };
-
-  // --- TRIGGER DELETION MODAL ---
-  // Updated to accept the correct firebaseId
-  const initiateDelete = (firebaseId, type) => {
-    setDeleteConfirmation({ isOpen: true, id: firebaseId, type, isDeleting: false });
-  };
-
-  // --- EXECUTE DELETION ---
-  const confirmDelete = async () => {
-    const { id, type } = deleteConfirmation; // Here 'id' is actually the firebaseId
-    if (!id || !type) return;
-
-    setDeleteConfirmation(prev => ({ ...prev, isDeleting: true }));
-
-    try {
-      if (!auth.currentUser) throw new Error("Authentication lost. Please sign in again.");
-      
-      // We use the 'id' from state, which corresponds to the firebaseId passed in initiateDelete
-      if (type === 'log') {
-        await deleteDoc(doc(db, "logs", id));
-        // Check using the custom ID for UI selection clearing, but 'id' var holds firebaseId
-        if (selectedLog && selectedLog.firebaseId === id) setSelectedLog(null);
-      } else if (type === 'announcement') {
-        await deleteDoc(doc(db, "announcements", id));
-      }
-      setDeleteConfirmation({ isOpen: false, id: null, type: null, isDeleting: false });
-    } catch (error) {
-      alert("Error executing deletion: " + error.message + "\n\n1. Check Firebase Console > Firestore > Rules.\n2. Ensure 'allow delete: if request.auth != null;' is present.");
-      setDeleteConfirmation(prev => ({ ...prev, isDeleting: false }));
-    }
-  };
-
-  const handleCreateAnnouncement = async (e) => {
-    e.preventDefault();
-    try {
-        await addDoc(collection(db, "announcements"), {
-            timestamp: new Date().toISOString(),
-            ...newAnnouncement
-        });
-        setIsCreatingAnnouncement(false);
-        setNewAnnouncement({ title: '', content: '', author: 'Admin' });
-    } catch (e) {
-        alert(e.message);
-    }
-  };
-
-  const generateLogId = () => {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-    return `AD_LOG-${yyyy}${mm}${dd}-${hh}${min}-${random}`;
-  };
-
-  const handleCreateLog = async (e) => {
-    e.preventDefault();
-    const endTime = new Date();
-    const startTime = shiftStartTimestamp || new Date(); 
-    const formattedDuration = formatTime(shiftTime);
-
-    const newEntry = {
-      id: generateLogId(), // This is the custom ID shown on UI
-      timestamp: endTime.toISOString(),
-      shiftStart: startTime.toISOString(),
-      shiftEnd: endTime.toISOString(),
-      ...newLogData,
-      hours: formattedDuration, 
-      durationSeconds: shiftTime,
-      attachments: newLogData.links.length
-    };
-    
-    try {
-      await addDoc(collection(db, "logs"), newEntry);
-      
-      setIsCreating(false);
-      setNewLogData({
-        author: 'Admin',
-        position: POSITIONS[0],
-        clearance: 'Level 3',
-        activity: '',
-        reports: '',
-        requests: '',
-        actions: '',
-        links: []
-      });
-      setShiftActive(false);
-      setShiftTime(0);
-      setShiftStartTimestamp(null);
-    } catch (error) {
-      alert("Failed to submit log: " + error.message);
-    }
-  };
-
-  if (!booted) return <BiosScreen onComplete={() => setBooted(true)} />;
-  if (!authLevel) return <LoginScreen onLogin={setAuthLevel} />;
-
-  return (
-    <div className="flex h-screen w-full text-white bg-black" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-      <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${ASSETS.bgAD}")` }} />
-      <div className="absolute inset-0 z-0 bg-black/20 pointer-events-none" />
-
-      {/* --- DELETION CONFIRMATION MODAL --- */}
-      {deleteConfirmation.isOpen && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-black border-2 border-red-600 p-6 shadow-[0_0_50px_rgba(220,38,38,0.5)]">
-            <div className="flex items-center text-red-500 mb-4 border-b border-red-900/50 pb-2">
-              <AlertOctagon className="mr-2" />
-              <h3 className="text-lg font-bold uppercase tracking-widest">Confirmation</h3>
-            </div>
-            <p className="text-white text-xs mb-6 leading-relaxed">
-              You are about to permanently delete this {deleteConfirmation.type}. This action will be logged and cannot be reversed.
-              <br/><br/>
-              <span className="text-red-500 font-bold">PROCEED WITH DELETION?</span>
-            </p>
-            <div className="flex space-x-3">
-              <button 
-                onClick={() => setDeleteConfirmation({ isOpen: false, id: null, type: null, isDeleting: false })}
-                className="flex-1 py-3 border border-gray-600 text-gray-400 hover:bg-gray-800 text-xs uppercase transition-colors"
-                disabled={deleteConfirmation.isDeleting}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={confirmDelete}
-                disabled={deleteConfirmation.isDeleting}
-                className="flex-1 py-3 bg-red-600 text-black font-bold hover:bg-red-500 text-xs uppercase transition-colors shadow-lg flex justify-center items-center"
-              >
-                {deleteConfirmation.isDeleting ? <Loader className="animate-spin" size={12} /> : 'Delete Record'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <aside className="w-80 relative z-10 bg-black/80 border-r border-white/20 flex flex-col backdrop-blur-md shadow-xl flex-shrink-0">
-        
-        <div className="p-4 border-b border-white/20 flex items-center space-x-3 bg-black/60">
-          <div className="h-10 w-10 border border-white/30 flex items-center justify-center bg-white/10">
-            <img src={ASSETS.logoScp} className="h-8 w-8 filter brightness-0 invert" alt="SCP" />
-          </div>
-          <div>
-            <h2 className="text-white font-bold tracking-widest text-shadow">DATABASE</h2>
-            <p className="text-xs text-gray-400">SITE-45 // ARCHIVE</p>
-          </div>
-        </div>
-
-        <div className="flex border-b border-white/20 text-xs">
-            <button 
-                onClick={() => setActiveTab('logs')}
-                className={`flex-1 py-3 uppercase font-bold transition-colors ${activeTab === 'logs' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-500'}`}
-            >
-                Logs
-            </button>
-            <button 
-                onClick={() => setActiveTab('announcements')}
-                className={`flex-1 py-3 uppercase font-bold transition-colors ${activeTab === 'announcements' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-500'}`}
-            >
-                News
-            </button>
-        </div>
-
-        {activeTab === 'logs' && (
-            <>
-                <div className="p-3 border-b border-white/10 bg-black/40 space-y-2">
-                <div className="flex space-x-2">
-                    <div className="relative flex-1">
-                    <Calendar size={12} className="absolute left-2 top-2 text-gray-500" />
-                    <select 
-                        className="w-full bg-gray-900 border border-gray-700 text-gray-300 text-xs py-1 pl-6 pr-2 focus:outline-none"
-                        value={filterMonth}
-                        onChange={(e) => setFilterMonth(e.target.value)}
-                    >
-                        <option value="all">All Months</option>
-                        {Array.from({length: 12}, (_, i) => (
-                        <option key={i} value={i}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
+            return (
+                <div className="h-screen w-full bg-black text-white p-10 overflow-hidden flex flex-col justify-end pb-20">
+                    <div className="flex-1">
+                        {lines.map((line, i) => (
+                            <div key={i} className="mb-1 text-sm opacity-90">{line}</div>
                         ))}
-                    </select>
+                        <div className="animate-pulse">_</div>
                     </div>
-                    <div className="relative flex-1">
-                    <Filter size={12} className="absolute left-2 top-2 text-gray-500" />
-                    <select 
-                        className="w-full bg-gray-900 border border-gray-700 text-gray-300 text-xs py-1 pl-6 pr-2 focus:outline-none"
-                        value={filterQuota}
-                        onChange={(e) => setFilterQuota(e.target.value)}
-                    >
-                        <option value="all">All Quotas</option>
-                        <option value="met">Quota Met</option>
-                        <option value="unmet">Quota Unmet</option>
-                    </select>
-                    </div>
-                </div>
-                <div className="flex justify-between items-center text-[10px] text-gray-500 px-1">
-                    <span>FILES FOUND: {filteredLogs.length}</span>
-                    <span>SORT: DATE (DESC)</span>
-                </div>
-                </div>
-
-                <div className="p-3 flex justify-between items-center bg-white/5 border-b border-white/10">
-                <div className="text-[10px] text-gray-400 uppercase font-semibold">
-                    {authLevel === 'admin' ? 'ADMINISTRATOR' : 'GUEST_VIEWER'}
-                </div>
-                {authLevel === 'admin' && (
-                    <button 
-                    onClick={() => setIsCreating(true)}
-                    className="flex items-center space-x-1 bg-white text-black px-3 py-1 text-xs font-bold hover:bg-gray-200 uppercase transition-colors"
-                    >
-                    <Plus size={12} />
-                    <span>Entry</span>
-                    </button>
-                )}
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                {filteredLogs.length === 0 && (
-                    <div className="p-6 text-center text-gray-600 italic text-xs">
-                    [NO RECORDS FOUND]
-                    </div>
-                )}
-                {filteredLogs.map(log => {
-                    const isShortShift = log.durationSeconds < 3600;
-                    return (
-                        <div 
-                        key={log.id}
-                        onClick={() => setSelectedLog(log)}
-                        className={`group p-4 border-b border-white/10 cursor-pointer transition-all hover:bg-white/5 relative ${
-                            selectedLog && selectedLog.id === log.id 
-                            ? 'bg-white/10 border-l-4 border-l-white' 
-                            : isShortShift 
-                                ? 'border-l-4 border-l-red-500 bg-red-900/10' 
-                                : 'border-l-4 border-l-transparent text-gray-400'
-                        }`}
-                        >
-                        <div className="flex justify-between items-start mb-1">
-                            <span className={`font-bold text-xs truncate w-32 ${isShortShift ? 'text-red-400' : 'text-gray-200'}`}>
-                                {log.id}
-                            </span>
-                            {isShortShift && <AlertTriangle size={12} className="text-red-500" />}
+                    {lines.length === bootText.length && (
+                        <div className="w-full max-w-xl border-2 border-white p-1 mt-4">
+                            <div className="h-4 bg-white transition-all duration-75" style={{ width: `${loading}%` }} />
                         </div>
-                        <div className="flex justify-between text-[10px] opacity-70">
-                            <span className={isShortShift ? 'text-red-300' : ''}>{new Date(log.timestamp).toLocaleDateString()}</span>
-                            <span className={isShortShift ? 'text-red-300' : ''}>{log.author}</span>
-                        </div>
-                        
-                        {authLevel === 'admin' && (
-                            <button 
-                            onClick={(e) => { e.stopPropagation(); initiateDelete(log.firebaseId, 'log'); }}
-                            className="absolute right-2 top-2 p-1 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                            <Trash2 size={12} />
-                            </button>
-                        )}
-                        </div>
-                    );
-                })}
-                </div>
-            </>
-        )}
-
-        {activeTab === 'announcements' && (
-            <div className="flex-1 flex flex-col">
-                <div className="p-3 border-b border-white/10 bg-black/40 flex justify-between items-center">
-                    <span className="text-[10px] text-gray-500">UPDATES: {announcements.length}</span>
-                    {authLevel === 'admin' && (
-                        <button onClick={() => setIsCreatingAnnouncement(true)} className="text-xs hover:text-white"><Plus size={14} /></button>
                     )}
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {announcements.map(ann => (
-                        <div key={ann.id} className="border border-white/20 bg-white/5 p-3 relative group">
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-sm text-white">{ann.title}</h3>
-                                {authLevel === 'admin' && (
-                                    <button onClick={() => initiateDelete(ann.firebaseId, 'announcement')} className="text-gray-600 hover:text-red-500"><Trash2 size={10} /></button>
-                                )}
-                            </div>
-                            <p className="text-xs text-gray-300 whitespace-pre-wrap">{ann.content}</p>
-                            <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-[9px] text-gray-500">
-                                <span>{new Date(ann.timestamp).toLocaleDateString()}</span>
-                                <span>{ann.author}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )}
+            );
+        };
 
-        <div className="p-4 border-t border-white/20 bg-black/60">
-          <button onClick={handleSignOut} className="flex items-center space-x-2 text-gray-500 hover:text-white transition-colors w-full">
-            <LogOut size={14} />
-            <span className="uppercase text-xs font-bold">Disconnect</span>
-          </button>
-        </div>
-      </aside>
+        const LoginScreen = ({ onLogin }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
 
-      <main className="flex-1 relative z-10 p-6 overflow-hidden flex flex-col items-center">
-        
-        {isCreatingAnnouncement && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md z-50">
-                <div className="w-full max-w-lg bg-black border border-white p-6 shadow-2xl">
-                    <div className="flex justify-between items-center mb-4 border-b border-white/20 pb-2">
-                        <h2 className="text-lg font-bold uppercase"><Megaphone size={16} className="inline mr-2"/> New Announcement</h2>
-                        <button onClick={() => setIsCreatingAnnouncement(false)}><X size={16}/></button>
-                    </div>
-                    <form onSubmit={handleCreateAnnouncement} className="space-y-4">
-                        <input className="w-full bg-gray-900 border border-gray-700 p-2 text-xs text-white" placeholder="Title" value={newAnnouncement.title} onChange={e => setNewAnnouncement({...newAnnouncement, title: e.target.value})} required />
-                        <textarea className="w-full bg-gray-900 border border-gray-700 p-2 text-xs text-white h-32" placeholder="Content" value={newAnnouncement.content} onChange={e => setNewAnnouncement({...newAnnouncement, content: e.target.value})} required />
-                        <button type="submit" className="w-full bg-white text-black font-bold py-2 uppercase text-xs">Post</button>
-                    </form>
-                </div>
-            </div>
-        )}
-
-        {isCreating ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md z-50">
-            <div className="w-full max-w-4xl bg-black border border-white/30 p-8 shadow-2xl overflow-y-auto max-h-[95vh] rounded-sm">
-              <h2 className="text-xl text-white font-bold mb-6 border-b border-white/20 pb-2 uppercase flex items-center">
-                <Plus className="mr-2" /> Initialize New Log Entry
-              </h2>
-              <form onSubmit={handleCreateLog} className="space-y-4">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Personnel Name</label>
-                        <input required className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:border-white transition-colors" 
-                        value={newLogData.author} onChange={e => setNewLogData({...newLogData, author: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Clearance Level</label>
-                        <select className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:border-white"
-                        value={newLogData.clearance} onChange={e => setNewLogData({...newLogData, clearance: e.target.value})}>
-                        <option>Level 1</option>
-                        <option>Level 2</option>
-                        <option>Level 3</option>
-                        <option>Level 4</option>
-                        <option>Level 5</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Position / Role</label>
-                        <select className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:border-white"
-                        value={newLogData.position} onChange={e => setNewLogData({...newLogData, position: e.target.value})}>
-                        {POSITIONS.map(pos => <option key={pos} value={pos}>{pos}</option>)}
-                        </select>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-900/50 border border-gray-700 p-4 flex flex-col justify-between">
-                    <label className="block text-[10px] text-gray-500 mb-1 uppercase">Shift Timer (Auto-Log)</label>
-                    <div className="flex-1 flex flex-col justify-center items-center">
-                        <div className={`font-mono text-3xl font-bold mb-2 ${shiftActive ? 'text-green-500' : 'text-gray-600'}`}>
-                            {formatTime(shiftTime)}
-                        </div>
-                        <p className={`text-[10px] uppercase font-bold ${(shiftTime / 3600) < 1.0 ? "text-red-500" : "text-green-500"}`}>
-                            {(shiftTime / 3600) < 1.0 ? "Quota Not Met (< 1h)" : "Quota Met"}
-                        </p>
-                    </div>
-                    <button 
-                        type="button"
-                        onClick={toggleShift}
-                        className={`w-full py-2 text-xs font-bold uppercase transition-colors border ${
-                            shiftActive 
-                            ? 'border-red-900 text-red-500 hover:bg-red-900/20' 
-                            : 'border-green-900 text-green-500 hover:bg-green-900/20'
-                        }`}
-                    >
-                        {shiftActive ? 'End Shift' : 'Start Shift'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="col-span-2">
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Activity Notes</label>
-                        <textarea required className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-24 text-xs resize-none focus:border-white"
-                            value={newLogData.activity} onChange={e => setNewLogData({...newLogData, activity: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Player Reports</label>
-                        <textarea className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-24 text-xs resize-none focus:border-white"
-                        value={newLogData.reports} onChange={e => setNewLogData({...newLogData, reports: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Actions Taken</label>
-                        <textarea className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-24 text-xs resize-none focus:border-white"
-                        value={newLogData.actions} onChange={e => setNewLogData({...newLogData, actions: e.target.value})} />
-                    </div>
-                    <div className="col-span-2">
-                        <label className="block text-[10px] text-gray-500 mb-1 uppercase">Maintenance Requests</label>
-                        <textarea className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-16 text-xs resize-none focus:border-white"
-                        value={newLogData.requests} onChange={e => setNewLogData({...newLogData, requests: e.target.value})} />
-                    </div>
-                </div>
-
-                <div className="border border-dashed border-gray-700 p-3 bg-gray-900/30">
-                   <div className="flex space-x-2 mb-2">
-                     <input type="text" placeholder="Label" className="bg-black border border-gray-700 text-white p-2 text-xs w-1/3"
-                        value={tempLinkLabel} onChange={(e) => setTempLinkLabel(e.target.value)} />
-                     <input type="url" placeholder="URL" className="bg-black border border-gray-700 text-white p-2 text-xs flex-1"
-                        value={tempLinkUrl} onChange={(e) => setTempLinkUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddLink(e)} />
-                     <button type="button" onClick={handleAddLink} className="bg-white text-black px-4 py-1 text-xs font-bold uppercase hover:bg-gray-300">Add</button>
-                   </div>
-                   {newLogData.links.length > 0 && (
-                     <div className="flex flex-wrap gap-2">
-                       {newLogData.links.map((link, i) => (
-                         <span key={i} className="flex items-center bg-gray-800 text-gray-300 px-2 py-1 text-[10px] border border-gray-600">
-                           {link.label}
-                           <button type="button" onClick={() => handleRemoveLink(i)} className="ml-2 text-red-400 hover:text-white"><Trash2 size={10} /></button>
-                         </span>
-                       ))}
-                     </div>
-                   )}
-                </div>
-
-                <div className="flex justify-end space-x-4 pt-2">
-                  <button type="button" onClick={() => setIsCreating(false)} className="px-6 py-2 border border-gray-600 text-gray-400 hover:text-white uppercase text-xs">Cancel</button>
-                  <button type="submit" className="px-6 py-2 bg-white text-black font-bold hover:bg-gray-200 uppercase text-xs shadow-lg">Submit Log</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        ) : !selectedLog && activeTab === 'logs' ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 border border-white/10 w-full bg-black/40 backdrop-blur-sm">
-             <Terminal size={64} className="mb-6 opacity-30" />
-             <h2 className="text-xl font-bold uppercase tracking-[0.2em] mb-2 text-gray-400">System Idle</h2>
-             <p className="text-xs tracking-wider">Awaiting administrative input.</p>
-          </div>
-        ) : selectedLog && activeTab === 'logs' && (
-          <div className="w-full max-w-5xl h-full flex flex-col relative shadow-2xl overflow-hidden bg-black/80 backdrop-blur-md border border-white/20">
-            
-            <div className="bg-black/60 border-b border-white/20 p-6 flex justify-between items-start">
-              <div className="flex space-x-4">
-                <img src={ASSETS.logoAdmin} className="h-16 w-16 filter brightness-0 invert opacity-90" alt="Logo" />
-                <div className="flex flex-col justify-center">
-                  <h1 className="text-2xl font-bold text-white tracking-widest uppercase">Administrative Log</h1>
-                  <p className="text-gray-400 tracking-[0.3em] text-[10px] font-semibold">SITE-45 // SECURE DATABASE</p>
-                </div>
-              </div>
-              <div className="border-2 border-white/80 px-4 py-2 text-center">
-                <span className="block text-[10px] uppercase font-bold text-gray-300">Clearance</span>
-                <span className="block text-xl font-bold text-white tracking-widest">CONFIDENTIAL</span>
-              </div>
-            </div>
-
-            <div className="bg-black/40 border-b border-white/10 p-2 flex items-center space-x-6 text-[10px] text-gray-400 uppercase font-semibold px-6">
-              <div className="flex items-center space-x-2"><Terminal size={12} /><span>ID: {selectedLog.id}</span></div>
-              <div className="h-3 w-px bg-white/20"></div>
-              <div className="flex items-center space-x-2"><Clock size={12} /><span>{new Date(selectedLog.timestamp).toLocaleString()}</span></div>
-              <div className="h-3 w-px bg-white/20"></div>
-              <div className="flex items-center space-x-2"><User size={12} /><span>{selectedLog.author}</span></div>
-              <div className="h-3 w-px bg-white/20"></div>
-              <div className="flex items-center space-x-2"><Briefcase size={12} /><span>{selectedLog.position}</span></div>
-            </div>
-
-            <div className="flex-1 p-8 overflow-y-auto space-y-6">
-              
-              <div className="grid grid-cols-2 gap-6">
-                <div className="border border-green-500/30 p-4 bg-green-900/10 shadow-inner">
-                  <h3 className="text-xs font-bold text-green-300 uppercase mb-2 border-b border-green-500/30 pb-1">Personnel Data</h3>
-                  <div className="grid grid-cols-[80px_1fr] gap-2 text-sm">
-                    <span className="text-green-400 font-semibold">Name:</span> <span className="text-white font-bold">{selectedLog.author}</span>
-                    <span className="text-green-400 font-semibold">Rank:</span> <span className="text-white font-bold">{selectedLog.clearance}</span>
-                    <span className="text-green-400 font-semibold">Shift Start:</span> <span className="text-white">{selectedLog.shiftStart ? new Date(selectedLog.shiftStart).toLocaleTimeString() : 'N/A'}</span>
-                    <span className="text-green-400 font-semibold">Shift End:</span> <span className="text-white">{selectedLog.shiftEnd ? new Date(selectedLog.shiftEnd).toLocaleTimeString() : 'N/A'}</span>
-                    <span className="text-green-400 font-semibold">Duty Time:</span> 
-                    <span className={`font-bold ${selectedLog.durationSeconds < 3600 ? 'text-red-400' : 'text-white'}`}>
-                        {selectedLog.hours}
-                    </span>
-                  </div>
-                </div>
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
                 
-                <div className="border border-green-500/30 p-4 bg-green-900/10 flex flex-col justify-center items-center text-center shadow-inner">
-                  <AlertTriangle className="text-green-400 mb-2 drop-shadow-sm" size={24} />
-                  <p className="text-xs text-green-200 uppercase font-bold">Warning: Information contained herein is subject to Level 4 Classification protocols.</p>
-                </div>
-              </div>
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (err) {
+                    setError("AUTH FAILED: " + err.message);
+                    setLoading(false);
+                }
+            };
 
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase bg-green-900/20 p-2 border-l-4 border-green-400 mb-3 shadow-sm">
-                  Activity Report
-                </h3>
-                <div className="bg-black/20 border border-green-500/20 p-4 font-sans text-white leading-relaxed min-h-[100px] shadow-inner whitespace-pre-wrap">
-                  {selectedLog.activity}
-                </div>
-              </div>
+            const handleGithubLogin = async () => {
+                setError('');
+                setLoading(true);
+                const provider = new GithubAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (err) {
+                    setError("GITHUB AUTH FAILED: " + err.message);
+                    setLoading(false);
+                }
+            };
 
-              {selectedLog.links && selectedLog.links.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-white uppercase bg-emerald-900/20 p-2 border-l-4 border-emerald-400 mb-3 shadow-sm flex items-center">
-                    <Paperclip size={14} className="mr-2" /> Attached Files / Evidence
-                  </h3>
-                  <div className="bg-black/20 border border-emerald-500/20 p-4 font-sans text-white shadow-inner">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                       {selectedLog.links.map((link, i) => (
-                         <div key={i} className="flex items-center bg-black/40 border border-emerald-500/10 p-2 hover:bg-emerald-900/20 transition-colors">
-                           <div className="h-8 w-8 bg-emerald-900/30 flex items-center justify-center mr-3 border border-emerald-500/30">
-                              <ExternalLink size={14} className="text-emerald-400"/>
-                           </div>
-                           <div className="flex flex-col flex-1 overflow-hidden">
-                               <span className="text-sm font-bold text-gray-200 truncate">{link.label}</span>
-                               <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-500 hover:text-emerald-300 hover:underline truncate">
-                                    {link.url}
-                               </a>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                  </div>
-                </div>
-              )}
+            return (
+                <div className="h-screen w-full flex items-center justify-center relative overflow-hidden text-white bg-black">
+                    <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${ASSETS.bgMain}")` }} />
+                    <div className="absolute inset-0 z-10 bg-black/40 pointer-events-none" />
+                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-20 bg-[length:100%_2px,3px_100%]"></div>
+                    
+                    {/* SIZED DOWN CONTAINER (max-w-sm) */}
+                    <div className="z-30 w-full max-w-sm bg-black border border-white/40 p-8 shadow-2xl backdrop-blur-sm">
+                        <div className="flex justify-center mb-6">
+                            <img src={ASSETS.logoAdmin} alt="Admin" className="h-20 w-20 filter brightness-0 invert" />
+                        </div>
+                        
+                        <h1 className="text-lg text-center text-white mb-2 font-bold uppercase tracking-[0.2em]">Site-45 Admin</h1>
+                        <p className="text-center text-gray-500 text-[10px] mb-6 tracking-widest border-b border-gray-800 pb-4">SECURE ACCESS TERMINAL</p>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-bold text-white uppercase bg-teal-900/20 p-2 border-l-4 border-teal-500 mb-3 shadow-sm">
-                    Player Reports & Incidents
-                  </h3>
-                  <div className="bg-black/20 border border-teal-500/20 p-4 font-sans text-gray-100 text-sm min-h-[100px] shadow-inner whitespace-pre-wrap">
-                    {selectedLog.reports || "No incidents reported."}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white uppercase bg-green-950/30 p-2 border-l-4 border-green-600 mb-3 shadow-sm">
-                    Administrative Actions
-                  </h3>
-                  <div className="bg-black/20 border border-green-600/20 p-4 font-sans text-gray-100 text-sm min-h-[100px] shadow-inner whitespace-pre-wrap">
-                    {selectedLog.actions || "No actions taken."}
-                  </div>
-                </div>
-              </div>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wider">Identity / Email</label>
+                                <input 
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:outline-none focus:border-white transition-colors"
+                                    placeholder="personnel@foundation.scp"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wider">Passcode</label>
+                                <input 
+                                    type="password" 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:outline-none focus:border-white transition-colors"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                            {error && <p className="text-red-500 text-[10px] bg-red-900/20 p-2 border border-red-900 text-center">{error}</p>}
+                            
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className="w-full bg-white text-black font-bold py-2 hover:bg-gray-200 transition-colors uppercase text-xs tracking-wider mt-2 disabled:opacity-50"
+                            >
+                                {loading ? 'Authenticating...' : 'Authenticate'}
+                            </button>
+                        </form>
 
-               <div>
-                <h3 className="text-sm font-bold text-white uppercase bg-lime-900/20 p-2 border-l-4 border-lime-500 mb-3 shadow-sm">
-                  Maintenance / Technical Requests
-                </h3>
-                <div className="bg-black/20 border border-lime-500/20 p-4 font-sans text-white leading-relaxed shadow-inner whitespace-pre-wrap">
-                  {selectedLog.requests || "None."}
-                </div>
-              </div>
+                        <div className="mt-4 text-center">
+                            <p className="text-[10px] text-gray-600 mb-2">- OR -</p>
+                            <button 
+                                onClick={handleGithubLogin}
+                                disabled={loading}
+                                className="w-full bg-[#111] border border-gray-600 text-white font-bold py-2 hover:bg-white hover:text-black transition-colors uppercase text-xs tracking-wider flex items-center justify-center disabled:opacity-50"
+                            >
+                                <Github size={14} className="mr-2" /> GitHub Access
+                            </button>
+                        </div>
 
-            </div>
+                        <div className="mt-6 pt-4 border-t border-gray-800 text-center">
+                            <button onClick={() => onLogin('guest')} className="text-gray-500 text-[10px] hover:text-white uppercase transition-colors flex items-center justify-center w-full">
+                                <Eye size={12} className="mr-1" /> Guest / Read-Only Access
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [booted, setBooted] = useState(false);
+            const [authLevel, setAuthLevel] = useState(null); 
+            const [logs, setLogs] = useState([]);
+            const [announcements, setAnnouncements] = useState([]);
+            const [selectedLog, setSelectedLog] = useState(null);
+            const [isCreating, setIsCreating] = useState(false);
+            const [activeTab, setActiveTab] = useState('logs'); 
+            const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false);
             
-            <div className="p-3 text-center border-t border-white/10 bg-black/80">
-              <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] font-bold">Secure. Contain. Protect.</p>
-            </div>
+            const [deleteConfirmation, setDeleteConfirmation] = useState({
+                isOpen: false,
+                id: null,
+                type: null,
+                isDeleting: false
+            });
 
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
+            const [newAnnouncement, setNewAnnouncement] = useState({
+                title: '',
+                content: '',
+                author: 'Admin'
+            });
+
+            // Auth Listener
+            useEffect(() => {
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        setAuthLevel('admin');
+                    } else {
+                        if (authLevel !== 'guest') setAuthLevel(null);
+                    }
+                });
+                return () => unsubscribe();
+            }, []); 
+
+            // Data Listeners
+            useEffect(() => {
+                const qLogs = query(collection(db, "logs"), orderBy("timestamp", "desc"));
+                const unsubLogs = onSnapshot(qLogs, (snapshot) => {
+                    const loaded = [];
+                    snapshot.forEach((doc) => {
+                        loaded.push({ 
+                            firebaseId: doc.id,
+                            ...doc.data()       
+                        });
+                    });
+                    setLogs(loaded);
+                });
+
+                const qAnnouncements = query(collection(db, "announcements"), orderBy("timestamp", "desc"));
+                const unsubAnnounce = onSnapshot(qAnnouncements, (snapshot) => {
+                    const loaded = [];
+                    snapshot.forEach((doc) => {
+                        loaded.push({ 
+                            firebaseId: doc.id,
+                            ...doc.data() 
+                        });
+                    });
+                    setAnnouncements(loaded);
+                });
+                
+                return () => { unsubLogs(); unsubAnnounce(); };
+            }, []);
+
+            const handleSignOut = () => {
+                signOut(auth).then(() => {
+                    setAuthLevel(null);
+                }).catch((error) => console.error(error));
+            };
+
+            const [filterMonth, setFilterMonth] = useState('all');
+            const [filterQuota, setFilterQuota] = useState('all');
+
+            const [shiftActive, setShiftActive] = useState(false);
+            const [shiftTime, setShiftTime] = useState(0); 
+            const [shiftStartTimestamp, setShiftStartTimestamp] = useState(null);
+
+            useEffect(() => {
+                let interval;
+                if (shiftActive) {
+                    interval = setInterval(() => {
+                        setShiftTime(prev => prev + 1);
+                    }, 1000);
+                }
+                return () => clearInterval(interval);
+            }, [shiftActive]);
+
+            const toggleShift = () => {
+                if (!shiftActive) {
+                    setShiftStartTimestamp(new Date());
+                }
+                setShiftActive(!shiftActive);
+            };
+
+            const formatTime = (seconds) => {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = seconds % 60;
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+
+            const [newLogData, setNewLogData] = useState({
+                author: 'Admin',
+                position: POSITIONS[0],
+                clearance: 'Level 3',
+                activity: '',
+                reports: '',
+                requests: '',
+                actions: '',
+                links: [] 
+            });
+            
+            const [tempLinkUrl, setTempLinkUrl] = useState('');
+            const [tempLinkLabel, setTempLinkLabel] = useState('');
+
+            const filteredLogs = useMemo(() => {
+                return logs.filter(log => {
+                    const logDate = new Date(log.timestamp);
+                    const matchesMonth = filterMonth === 'all' || logDate.getMonth() === parseInt(filterMonth);
+                    
+                    const quotaMet = log.durationSeconds >= 3600;
+                    let matchesQuota = true;
+                    if (filterQuota === 'met') matchesQuota = quotaMet;
+                    if (filterQuota === 'unmet') matchesQuota = !quotaMet;
+
+                    return matchesMonth && matchesQuota;
+                });
+            }, [logs, filterMonth, filterQuota]);
+
+            const handleAddLink = (e) => {
+                e.preventDefault();
+                if (tempLinkUrl.trim()) {
+                    const label = tempLinkLabel.trim() || tempLinkUrl.trim();
+                    setNewLogData({ ...newLogData, links: [...newLogData.links, { label, url: tempLinkUrl.trim() }] });
+                    setTempLinkUrl('');
+                    setTempLinkLabel('');
+                }
+            };
+
+            const handleRemoveLink = (index) => {
+                const updatedLinks = newLogData.links.filter((_, i) => i !== index);
+                setNewLogData({...newLogData, links: updatedLinks});
+            };
+
+            const initiateDelete = (firebaseId, type) => {
+                setDeleteConfirmation({ isOpen: true, id: firebaseId, type, isDeleting: false });
+            };
+
+            const confirmDelete = async () => {
+                const { id, type } = deleteConfirmation; 
+                if (!id || !type) return;
+
+                setDeleteConfirmation(prev => ({ ...prev, isDeleting: true }));
+
+                try {
+                    if (!auth.currentUser) throw new Error("Authentication lost. Please sign in again.");
+                    
+                    if (type === 'log') {
+                        await deleteDoc(doc(db, "logs", id));
+                        if (selectedLog && selectedLog.firebaseId === id) setSelectedLog(null);
+                    } else if (type === 'announcement') {
+                        await deleteDoc(doc(db, "announcements", id));
+                    }
+                    setDeleteConfirmation({ isOpen: false, id: null, type: null, isDeleting: false });
+                } catch (error) {
+                    alert("Error executing deletion: " + error.message);
+                    setDeleteConfirmation(prev => ({ ...prev, isDeleting: false }));
+                }
+            };
+
+            const handleCreateAnnouncement = async (e) => {
+                e.preventDefault();
+                try {
+                    await addDoc(collection(db, "announcements"), {
+                        timestamp: new Date().toISOString(),
+                        ...newAnnouncement
+                    });
+                    setIsCreatingAnnouncement(false);
+                    setNewAnnouncement({ title: '', content: '', author: 'Admin' });
+                } catch (e) {
+                    alert(e.message);
+                }
+            };
+
+            const generateLogId = () => {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const hh = String(now.getHours()).padStart(2, '0');
+                const min = String(now.getMinutes()).padStart(2, '0');
+                const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+                return `AD_LOG-${yyyy}${mm}${dd}-${hh}${min}-${random}`;
+            };
+
+            const handleCreateLog = async (e) => {
+                e.preventDefault();
+                const endTime = new Date();
+                const startTime = shiftStartTimestamp || new Date(); 
+                const formattedDuration = formatTime(shiftTime);
+
+                const newEntry = {
+                    id: generateLogId(),
+                    timestamp: endTime.toISOString(),
+                    shiftStart: startTime.toISOString(),
+                    shiftEnd: endTime.toISOString(),
+                    ...newLogData,
+                    hours: formattedDuration, 
+                    durationSeconds: shiftTime,
+                    attachments: newLogData.links.length
+                };
+                
+                try {
+                    await addDoc(collection(db, "logs"), newEntry);
+                    
+                    setIsCreating(false);
+                    setNewLogData({
+                        author: 'Admin',
+                        position: POSITIONS[0],
+                        clearance: 'Level 3',
+                        activity: '',
+                        reports: '',
+                        requests: '',
+                        actions: '',
+                        links: []
+                    });
+                    setShiftActive(false);
+                    setShiftTime(0);
+                    setShiftStartTimestamp(null);
+                } catch (error) {
+                    alert("Failed to submit log: " + error.message);
+                }
+            };
+
+            if (!booted) return <BiosScreen onComplete={() => setBooted(true)} />;
+            if (!authLevel) return <LoginScreen onLogin={setAuthLevel} />;
+
+            return (
+                <div className="flex h-screen w-full text-white bg-black">
+                    <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${ASSETS.bgAD}")` }} />
+                    <div className="absolute inset-0 z-0 bg-black/20 pointer-events-none" />
+
+                    {/* DELETION CONFIRMATION */}
+                    {deleteConfirmation.isOpen && (
+                        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
+                            <div className="w-full max-w-sm bg-black border-2 border-red-600 p-6 shadow-[0_0_50px_rgba(220,38,38,0.5)]">
+                                <div className="flex items-center text-red-500 mb-4 border-b border-red-900/50 pb-2">
+                                    <AlertOctagon className="mr-2" />
+                                    <h3 className="text-lg font-bold uppercase tracking-widest">Confirmation</h3>
+                                </div>
+                                <p className="text-white text-xs mb-6 leading-relaxed">
+                                    You are about to permanently delete this {deleteConfirmation.type}. This action will be logged and cannot be reversed.
+                                    <br/><br/>
+                                    <span className="text-red-500 font-bold">PROCEED WITH DELETION?</span>
+                                </p>
+                                <div className="flex space-x-3">
+                                    <button 
+                                        onClick={() => setDeleteConfirmation({ isOpen: false, id: null, type: null, isDeleting: false })}
+                                        className="flex-1 py-3 border border-gray-600 text-gray-400 hover:bg-gray-800 text-xs uppercase transition-colors"
+                                        disabled={deleteConfirmation.isDeleting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={confirmDelete}
+                                        disabled={deleteConfirmation.isDeleting}
+                                        className="flex-1 py-3 bg-red-600 text-black font-bold hover:bg-red-500 text-xs uppercase transition-colors shadow-lg flex justify-center items-center"
+                                    >
+                                        {deleteConfirmation.isDeleting ? <Loader className="animate-spin" size={12} /> : 'Delete Record'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <aside className="w-80 relative z-10 bg-black/80 border-r border-white/20 flex flex-col backdrop-blur-md shadow-xl flex-shrink-0">
+                        <div className="p-4 border-b border-white/20 flex items-center space-x-3 bg-black/60">
+                            <div className="h-10 w-10 border border-white/30 flex items-center justify-center bg-white/10">
+                                <img src={ASSETS.logoScp} className="h-8 w-8 filter brightness-0 invert" alt="SCP" />
+                            </div>
+                            <div>
+                                <h2 className="text-white font-bold tracking-widest text-shadow">DATABASE</h2>
+                                <p className="text-xs text-gray-400">SITE-45 // ARCHIVE</p>
+                            </div>
+                        </div>
+
+                        <div className="flex border-b border-white/20 text-xs">
+                            <button onClick={() => setActiveTab('logs')} className={`flex-1 py-3 uppercase font-bold transition-colors ${activeTab === 'logs' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-500'}`}>Logs</button>
+                            <button onClick={() => setActiveTab('announcements')} className={`flex-1 py-3 uppercase font-bold transition-colors ${activeTab === 'announcements' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-500'}`}>News</button>
+                        </div>
+
+                        {activeTab === 'logs' && (
+                            <>
+                                <div className="p-3 border-b border-white/10 bg-black/40 space-y-2">
+                                    <div className="flex space-x-2">
+                                        <div className="relative flex-1">
+                                            <Calendar size={12} className="absolute left-2 top-2 text-gray-500" />
+                                            <select className="w-full bg-gray-900 border border-gray-700 text-gray-300 text-xs py-1 pl-6 pr-2 focus:outline-none" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
+                                                <option value="all">All Months</option>
+                                                {Array.from({length: 12}, (_, i) => <option key={i} value={i}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <Filter size={12} className="absolute left-2 top-2 text-gray-500" />
+                                            <select className="w-full bg-gray-900 border border-gray-700 text-gray-300 text-xs py-1 pl-6 pr-2 focus:outline-none" value={filterQuota} onChange={(e) => setFilterQuota(e.target.value)}>
+                                                <option value="all">All Quotas</option>
+                                                <option value="met">Quota Met</option>
+                                                <option value="unmet">Quota Unmet</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px] text-gray-500 px-1">
+                                        <span>FILES: {filteredLogs.length}</span>
+                                        <span>SORT: DESC</span>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 flex justify-between items-center bg-white/5 border-b border-white/10">
+                                    <div className="text-[10px] text-gray-400 uppercase font-semibold">{authLevel === 'admin' ? 'ADMINISTRATOR' : 'GUEST_VIEWER'}</div>
+                                    {authLevel === 'admin' && (
+                                        <button onClick={() => setIsCreating(true)} className="flex items-center space-x-1 bg-white text-black px-3 py-1 text-xs font-bold hover:bg-gray-200 uppercase transition-colors"><Plus size={12} /><span>Entry</span></button>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto">
+                                    {filteredLogs.length === 0 && <div className="p-6 text-center text-gray-600 italic text-xs">[NO RECORDS FOUND]</div>}
+                                    {filteredLogs.map(log => {
+                                        const isShortShift = log.durationSeconds < 3600;
+                                        return (
+                                            <div key={log.id} onClick={() => setSelectedLog(log)} className={`group p-4 border-b border-white/10 cursor-pointer transition-all hover:bg-white/5 relative ${selectedLog && selectedLog.id === log.id ? 'bg-white/10 border-l-4 border-l-white' : isShortShift ? 'border-l-4 border-l-red-500 bg-red-900/10' : 'border-l-4 border-l-transparent text-gray-400'}`}>
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className={`font-bold text-xs truncate w-32 ${isShortShift ? 'text-red-400' : 'text-gray-200'}`}>{log.id}</span>
+                                                    {isShortShift && <AlertTriangle size={12} className="text-red-500" />}
+                                                </div>
+                                                <div className="flex justify-between text-[10px] opacity-70">
+                                                    <span className={isShortShift ? 'text-red-300' : ''}>{new Date(log.timestamp).toLocaleDateString()}</span>
+                                                    <span className={isShortShift ? 'text-red-300' : ''}>{log.author}</span>
+                                                </div>
+                                                {authLevel === 'admin' && (
+                                                    <button onClick={(e) => { e.stopPropagation(); initiateDelete(log.firebaseId, 'log'); }} className="absolute right-2 top-2 p-1 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'announcements' && (
+                            <div className="flex-1 flex flex-col">
+                                <div className="p-3 border-b border-white/10 bg-black/40 flex justify-between items-center">
+                                    <span className="text-[10px] text-gray-500">UPDATES: {announcements.length}</span>
+                                    {authLevel === 'admin' && <button onClick={() => setIsCreatingAnnouncement(true)} className="text-xs hover:text-white"><Plus size={14} /></button>}
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {announcements.map(ann => (
+                                        <div key={ann.id} className="border border-white/20 bg-white/5 p-3 relative group">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-sm text-white">{ann.title}</h3>
+                                                {authLevel === 'admin' && <button onClick={() => initiateDelete(ann.firebaseId, 'announcement')} className="text-gray-600 hover:text-red-500"><Trash2 size={10} /></button>}
+                                            </div>
+                                            <p className="text-xs text-gray-300 whitespace-pre-wrap">{ann.content}</p>
+                                            <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-[9px] text-gray-500">
+                                                <span>{new Date(ann.timestamp).toLocaleDateString()}</span>
+                                                <span>{ann.author}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="p-4 border-t border-white/20 bg-black/60">
+                            <button onClick={handleSignOut} className="flex items-center space-x-2 text-gray-500 hover:text-white transition-colors w-full">
+                                <LogOut size={14} /><span className="uppercase text-xs font-bold">Disconnect</span>
+                            </button>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 relative z-10 p-6 overflow-hidden flex flex-col items-center">
+                        {isCreatingAnnouncement && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md z-50">
+                                <div className="w-full max-w-lg bg-black border border-white p-6 shadow-2xl">
+                                    <div className="flex justify-between items-center mb-4 border-b border-white/20 pb-2">
+                                        <h2 className="text-lg font-bold uppercase"><Megaphone size={16} className="inline mr-2"/> New Announcement</h2>
+                                        <button onClick={() => setIsCreatingAnnouncement(false)}><X size={16}/></button>
+                                    </div>
+                                    <form onSubmit={handleCreateAnnouncement} className="space-y-4">
+                                        <input className="w-full bg-gray-900 border border-gray-700 p-2 text-xs text-white" placeholder="Title" value={newAnnouncement.title} onChange={e => setNewAnnouncement({...newAnnouncement, title: e.target.value})} required />
+                                        <textarea className="w-full bg-gray-900 border border-gray-700 p-2 text-xs text-white h-32" placeholder="Content" value={newAnnouncement.content} onChange={e => setNewAnnouncement({...newAnnouncement, content: e.target.value})} required />
+                                        <button type="submit" className="w-full bg-white text-black font-bold py-2 uppercase text-xs">Post</button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {isCreating ? (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md z-50">
+                                <div className="w-full max-w-4xl bg-black border border-white/30 p-8 shadow-2xl overflow-y-auto max-h-[95vh] rounded-sm">
+                                    <h2 className="text-xl text-white font-bold mb-6 border-b border-white/20 pb-2 uppercase flex items-center"><Plus className="mr-2" /> Initialize New Log Entry</h2>
+                                    <form onSubmit={handleCreateLog} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 mb-1 uppercase">Personnel Name</label>
+                                                    <input required className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:border-white transition-colors" value={newLogData.author} onChange={e => setNewLogData({...newLogData, author: e.target.value})} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 mb-1 uppercase">Clearance Level</label>
+                                                    <select className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:border-white" value={newLogData.clearance} onChange={e => setNewLogData({...newLogData, clearance: e.target.value})}>
+                                                        <option>Level 1</option><option>Level 2</option><option>Level 3</option><option>Level 4</option><option>Level 5</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 mb-1 uppercase">Position / Role</label>
+                                                    <select className="w-full bg-gray-900 border border-gray-700 text-white p-2 text-xs focus:border-white" value={newLogData.position} onChange={e => setNewLogData({...newLogData, position: e.target.value})}>
+                                                        {POSITIONS.map(pos => <option key={pos} value={pos}>{pos}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-900/50 border border-gray-700 p-4 flex flex-col justify-between">
+                                                <label className="block text-[10px] text-gray-500 mb-1 uppercase">Shift Timer (Auto-Log)</label>
+                                                <div className="flex-1 flex flex-col justify-center items-center">
+                                                    <div className={`font-mono text-3xl font-bold mb-2 ${shiftActive ? 'text-green-500' : 'text-gray-600'}`}>{formatTime(shiftTime)}</div>
+                                                    <p className={`text-[10px] uppercase font-bold ${(shiftTime / 3600) < 1.0 ? "text-red-500" : "text-green-500"}`}>{(shiftTime / 3600) < 1.0 ? "Quota Not Met (< 1h)" : "Quota Met"}</p>
+                                                </div>
+                                                <button type="button" onClick={toggleShift} className={`w-full py-2 text-xs font-bold uppercase transition-colors border ${shiftActive ? 'border-red-900 text-red-500 hover:bg-red-900/20' : 'border-green-900 text-green-500 hover:bg-green-900/20'}`}>{shiftActive ? 'End Shift' : 'Start Shift'}</button>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 pt-2">
+                                            <div className="col-span-2">
+                                                <label className="block text-[10px] text-gray-500 mb-1 uppercase">Activity Notes</label>
+                                                <textarea required className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-24 text-xs resize-none focus:border-white" value={newLogData.activity} onChange={e => setNewLogData({...newLogData, activity: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500 mb-1 uppercase">Player Reports</label>
+                                                <textarea className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-24 text-xs resize-none focus:border-white" value={newLogData.reports} onChange={e => setNewLogData({...newLogData, reports: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500 mb-1 uppercase">Actions Taken</label>
+                                                <textarea className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-24 text-xs resize-none focus:border-white" value={newLogData.actions} onChange={e => setNewLogData({...newLogData, actions: e.target.value})} />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="block text-[10px] text-gray-500 mb-1 uppercase">Maintenance Requests</label>
+                                                <textarea className="w-full bg-gray-900 border border-gray-700 text-white p-2 h-16 text-xs resize-none focus:border-white" value={newLogData.requests} onChange={e => setNewLogData({...newLogData, requests: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div className="border border-dashed border-gray-700 p-3 bg-gray-900/30">
+                                            <div className="flex space-x-2 mb-2">
+                                                <input type="text" placeholder="Label" className="bg-black border border-gray-700 text-white p-2 text-xs w-1/3" value={tempLinkLabel} onChange={(e) => setTempLinkLabel(e.target.value)} />
+                                                <input type="url" placeholder="URL" className="bg-black border border-gray-700 text-white p-2 text-xs flex-1" value={tempLinkUrl} onChange={(e) => setTempLinkUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddLink(e)} />
+                                                <button type="button" onClick={handleAddLink} className="bg-white text-black px-4 py-1 text-xs font-bold uppercase hover:bg-gray-300">Add</button>
+                                            </div>
+                                            {newLogData.links.length > 0 && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {newLogData.links.map((link, i) => (
+                                                        <span key={i} className="flex items-center bg-gray-800 text-gray-300 px-2 py-1 text-[10px] border border-gray-600">
+                                                            {link.label}
+                                                            <button type="button" onClick={() => handleRemoveLink(i)} className="ml-2 text-red-400 hover:text-white"><Trash2 size={10} /></button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-end space-x-4 pt-2">
+                                            <button type="button" onClick={() => setIsCreating(false)} className="px-6 py-2 border border-gray-600 text-gray-400 hover:text-white uppercase text-xs">Cancel</button>
+                                            <button type="submit" className="px-6 py-2 bg-white text-black font-bold hover:bg-gray-200 uppercase text-xs shadow-lg">Submit Log</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        ) : !selectedLog && activeTab === 'logs' ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 border border-white/10 w-full bg-black/40 backdrop-blur-sm">
+                                <Terminal size={64} className="mb-6 opacity-30" />
+                                <h2 className="text-xl font-bold uppercase tracking-[0.2em] mb-2 text-gray-400">System Idle</h2>
+                                <p className="text-xs tracking-wider">Awaiting administrative input.</p>
+                            </div>
+                        ) : selectedLog && activeTab === 'logs' && (
+                            <div className="w-full max-w-5xl h-full flex flex-col relative shadow-2xl overflow-hidden bg-black/80 backdrop-blur-md border border-white/20">
+                                <div className="bg-black/60 border-b border-white/20 p-6 flex justify-between items-start">
+                                    <div className="flex space-x-4">
+                                        <img src={ASSETS.logoAdmin} className="h-16 w-16 filter brightness-0 invert opacity-90" alt="Logo" />
+                                        <div className="flex flex-col justify-center">
+                                            <h1 className="text-2xl font-bold text-white tracking-widest uppercase">Administrative Log</h1>
+                                            <p className="text-gray-400 tracking-[0.3em] text-[10px] font-semibold">SITE-45 // SECURE DATABASE</p>
+                                        </div>
+                                    </div>
+                                    <div className="border-2 border-white/80 px-4 py-2 text-center">
+                                        <span className="block text-[10px] uppercase font-bold text-gray-300">Clearance</span>
+                                        <span className="block text-xl font-bold text-white tracking-widest">CONFIDENTIAL</span>
+                                    </div>
+                                </div>
+                                <div className="bg-black/40 border-b border-white/10 p-2 flex items-center space-x-6 text-[10px] text-gray-400 uppercase font-semibold px-6">
+                                    <div className="flex items-center space-x-2"><Terminal size={12} /><span>ID: {selectedLog.id}</span></div>
+                                    <div className="h-3 w-px bg-white/20"></div>
+                                    <div className="flex items-center space-x-2"><Clock size={12} /><span>{new Date(selectedLog.timestamp).toLocaleString()}</span></div>
+                                    <div className="h-3 w-px bg-white/20"></div>
+                                    <div className="flex items-center space-x-2"><User size={12} /><span>{selectedLog.author}</span></div>
+                                    <div className="h-3 w-px bg-white/20"></div>
+                                    <div className="flex items-center space-x-2"><Briefcase size={12} /><span>{selectedLog.position}</span></div>
+                                </div>
+                                <div className="flex-1 p-8 overflow-y-auto space-y-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="border border-white/30 p-4 bg-white/5 shadow-inner">
+                                            <h3 className="text-xs font-bold text-gray-300 uppercase mb-2 border-b border-white/30 pb-1">Personnel Data</h3>
+                                            <div className="grid grid-cols-[80px_1fr] gap-2 text-sm">
+                                                <span className="text-gray-400 font-semibold">Name:</span> <span className="text-white font-bold">{selectedLog.author}</span>
+                                                <span className="text-gray-400 font-semibold">Rank:</span> <span className="text-white font-bold">{selectedLog.clearance}</span>
+                                                <span className="text-gray-400 font-semibold">Shift Start:</span> <span className="text-white">{selectedLog.shiftStart ? new Date(selectedLog.shiftStart).toLocaleTimeString() : 'N/A'}</span>
+                                                <span className="text-gray-400 font-semibold">Shift End:</span> <span className="text-white">{selectedLog.shiftEnd ? new Date(selectedLog.shiftEnd).toLocaleTimeString() : 'N/A'}</span>
+                                                <span className="text-gray-400 font-semibold">Duty Time:</span> 
+                                                <span className={`font-bold ${selectedLog.durationSeconds < 3600 ? 'text-red-400' : 'text-white'}`}>{selectedLog.hours}</span>
+                                            </div>
+                                        </div>
+                                        <div className="border border-yellow-500/50 p-4 bg-yellow-900/10 flex flex-col justify-center items-center text-center shadow-inner">
+                                            <AlertTriangle className="text-yellow-500 mb-2 drop-shadow-sm" size={32} />
+                                            <p className="text-xs text-yellow-500 uppercase font-bold">Warning: Information contained herein is subject to Level 4 Classification protocols.</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white uppercase bg-white/10 p-2 border-l-4 border-white mb-3 shadow-sm">Activity Report</h3>
+                                        <div className="bg-black/40 border border-white/20 p-4 font-sans text-white leading-relaxed min-h-[100px] shadow-inner whitespace-pre-wrap">{selectedLog.activity}</div>
+                                    </div>
+                                    {selectedLog.links && selectedLog.links.length > 0 && (
+                                        <div>
+                                            <h3 className="text-sm font-bold text-white uppercase bg-cyan-900/20 p-2 border-l-4 border-cyan-400 mb-3 shadow-sm flex items-center"><Paperclip size={14} className="mr-2" /> Attached Files / Evidence</h3>
+                                            <div className="bg-black/20 border border-cyan-500/20 p-4 font-sans text-white shadow-inner">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    {selectedLog.links.map((link, i) => (
+                                                        <div key={i} className="flex items-center bg-black/40 border border-cyan-500/10 p-2 hover:bg-cyan-900/20 transition-colors">
+                                                            <ExternalLink size={14} className="text-cyan-400 mr-2"/>
+                                                            <div className="flex flex-col flex-1 overflow-hidden">
+                                                                <span className="text-sm font-bold text-gray-200 truncate">{link.label}</span>
+                                                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-500 hover:text-cyan-300 hover:underline truncate">{link.url}</a>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-white uppercase bg-red-900/20 p-2 border-l-4 border-red-500 mb-3 shadow-sm">Player Reports & Incidents</h3>
+                                            <div className="bg-black/20 border border-red-500/20 p-4 font-sans text-gray-100 text-sm min-h-[100px] shadow-inner whitespace-pre-wrap">{selectedLog.reports || "No incidents reported."}</div>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-white uppercase bg-blue-900/20 p-2 border-l-4 border-blue-500 mb-3 shadow-sm">Administrative Actions</h3>
+                                            <div className="bg-black/20 border border-blue-500/20 p-4 font-sans text-gray-100 text-sm min-h-[100px] shadow-inner whitespace-pre-wrap">{selectedLog.actions || "No actions taken."}</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white uppercase bg-yellow-900/20 p-2 border-l-4 border-yellow-500 mb-3 shadow-sm">Maintenance / Technical Requests</h3>
+                                        <div className="bg-black/20 border border-yellow-500/20 p-4 font-sans text-white leading-relaxed shadow-inner whitespace-pre-wrap">{selectedLog.requests || "None."}</div>
+                                    </div>
+                                </div>
+                                <div className="p-3 text-center border-t border-white/10 bg-black/80">
+                                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] font-bold">Secure. Contain. Protect.</p>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
